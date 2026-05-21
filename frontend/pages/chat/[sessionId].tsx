@@ -8,7 +8,8 @@ import { SourceReferences } from "@/components/SourceReferences";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useAuthedSWR } from "@/lib/useAuthedSWR";
-import type { ChatSession, Message, SourceReference } from "@/lib/types";
+import { useChatStream } from "@/lib/useChatStream";
+import type { ChatSession, SourceReference } from "@/lib/types";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -20,11 +21,9 @@ export default function ChatPage() {
   const [showNewChat, setShowNewChat] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: sessionsData } = useAuthedSWR<{ sessions: ChatSession[] }>("/sessions", { refreshInterval: 5000 });
-  const { data: sessionData } = useAuthedSWR<{ session: ChatSession }>(sessionId ? `/sessions/${sessionId}` : null, {
-    refreshInterval: (latest) => (latest?.session.status === "ready" || latest?.session.status === "error" ? 0 : 3000),
-  });
-  const { data: messagesData } = useAuthedSWR<{ messages: Message[] }>(sessionId ? `/chat/${sessionId}/messages` : null, { refreshInterval: 4000 });
+  const { data: sessionsData } = useAuthedSWR<{ sessions: ChatSession[] }>("/sessions");
+  const { data: sessionData } = useAuthedSWR<{ session: ChatSession }>(sessionId ? `/sessions/${sessionId}` : null);
+  const chatStream = useChatStream(sessionId, token);
 
   useEffect(() => {
     if (!loading && !token) router.replace("/login");
@@ -32,15 +31,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messagesData?.messages.length, sending]);
+  }, [chatStream.messages.length, sending]);
 
   if (loading || !token || !sessionId) {
     return <main className="grain min-h-screen" />;
   }
 
   const sessions = sessionsData?.sessions ?? [];
-  const session = sessionData?.session;
-  const messages = messagesData?.messages ?? [];
+  const session = chatStream.session ?? sessionData?.session;
+  const messages = chatStream.messages;
   const ready = session?.status === "ready";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -55,7 +54,6 @@ export default function ChatPage() {
         method: "POST",
         body: JSON.stringify({ session_id: sessionId, question: current }),
       }, token);
-      await mutate((key) => Array.isArray(key) && key[0] === `/chat/${sessionId}/messages`);
       await mutate((key) => Array.isArray(key) && key[0] === "/sessions");
     } catch (err) {
       setQuestion(current);

@@ -1,5 +1,14 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+export function websocketURL(path: string, token: string): string {
+  const base = new URL(API_BASE_URL);
+  base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
+  base.pathname = path;
+  base.search = "";
+  base.searchParams.set("access_token", token);
+  return base.toString();
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;

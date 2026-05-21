@@ -1,7 +1,9 @@
+import asyncio
 from typing import Any
 
 import psycopg
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.encoders import jsonable_encoder
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
@@ -63,6 +65,33 @@ def messages(session_id: str, x_user_id: str = Header(default="")) -> dict[str, 
     return {"messages": rows}
 
 
+@router.websocket("/chat/{session_id}/stream")
+async def stream(session_id: str, websocket: WebSocket, x_user_id: str = Header(default="")) -> None:
+    if not x_user_id:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        _get_session(session_id, x_user_id)
+    except HTTPException:
+        await websocket.close(code=1008)
+        return
+
+    await websocket.accept()
+    last_signature = ""
+
+    try:
+        while True:
+            payload = _session_snapshot(session_id, x_user_id)
+            signature = _snapshot_signature(payload)
+            if signature != last_signature:
+                await websocket.send_json(jsonable_encoder({"type": "snapshot", **payload}))
+                last_signature = signature
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        return
+
+
 def _get_session(session_id: str, user_id: str) -> dict[str, Any]:
     with psycopg.connect(_database_url(), row_factory=dict_row) as conn:
         row = conn.execute(
@@ -78,6 +107,39 @@ def _get_session(session_id: str, user_id: str) -> dict[str, Any]:
     if not row:
         raise HTTPException(status_code=404, detail="session not found")
     return row
+
+
+def _session_snapshot(session_id: str, user_id: str) -> dict[str, Any]:
+    session = _get_session(session_id, user_id)
+    return {"session": session, "messages": _get_messages(session_id)}
+
+
+def _get_messages(session_id: str) -> list[dict[str, Any]]:
+    with psycopg.connect(_database_url(), row_factory=dict_row) as conn:
+        return conn.execute(
+            """
+            SELECT id::text, session_id::text, role, content, sources, created_at
+            FROM messages
+            WHERE session_id = %s
+            ORDER BY created_at ASC
+            """,
+            (session_id,),
+        ).fetchall()
+
+
+def _snapshot_signature(payload: dict[str, Any]) -> str:
+    session = payload["session"]
+    messages = payload["messages"]
+    latest_message = messages[-1] if messages else {}
+    return "|".join(
+        [
+            str(session.get("status", "")),
+            str(session.get("updated_at", "")),
+            str(len(messages)),
+            str(latest_message.get("id", "")),
+            str(latest_message.get("created_at", "")),
+        ]
+    )
 
 
 def _save_message(session_id: str, role: str, content: str, sources: list[dict[str, Any]]) -> None:

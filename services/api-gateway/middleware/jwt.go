@@ -34,6 +34,9 @@ func Auth(secret string, publicPaths map[string]bool) func(http.Handler) http.Ha
 			}
 
 			token := bearerToken(r.Header.Get("Authorization"))
+			if token == "" && isWebSocketRequest(r) {
+				token = strings.TrimSpace(r.URL.Query().Get("access_token"))
+			}
 			claims, err := parseJWT(token, secret)
 			if err != nil {
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
@@ -54,6 +57,10 @@ func bearerToken(header string) string {
 		return strings.TrimSpace(header[7:])
 	}
 	return ""
+}
+
+func isWebSocketRequest(r *http.Request) bool {
+	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
 }
 
 func parseJWT(token, secret string) (Claims, error) {
