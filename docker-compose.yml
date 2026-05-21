@@ -39,6 +39,29 @@ services:
       IS_PERSISTENT: "TRUE"
       PERSIST_DIRECTORY: /chroma/chroma
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until ollama list >/dev/null 2>&1; do
+          sleep 1
+        done
+        ollama pull "$$OLLAMA_MODEL"
+    depends_on:
+      - ollama
+
   auth-service:
     build: ./services/auth-service
     environment:
@@ -75,8 +98,8 @@ services:
       CHROMA_PORT: 8000
       CHROMA_COLLECTION: talk_to_docs_chunks
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
       ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     depends_on:
       postgres:
@@ -85,6 +108,8 @@ services:
         condition: service_healthy
       chroma:
         condition: service_started
+      ollama-pull:
+        condition: service_completed_successfully
 
   worker-service:
     build: ./services/worker-service
@@ -134,3 +159,4 @@ volumes:
   postgres_data:
   redis_data:
   chroma_data:
+  ollama_data:

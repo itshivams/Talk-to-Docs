@@ -39,12 +39,24 @@ Previous chat history for follow-up resolution only:
 Question:
 {question}
 
+Write a concise, natural answer in your own words using only the documentation context.
+Include short source markers like [source 1] when useful.
+
 Answer:"""
     try:
         async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
             response = await client.post(
                 f"{settings.ollama_base_url.rstrip('/')}/api/generate",
-                json={"model": settings.ollama_model, "prompt": prompt, "stream": False},
+                json={
+                    "model": settings.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.2,
+                        "top_p": 0.9,
+                        "num_predict": 300,
+                    },
+                },
             )
             response.raise_for_status()
             text = response.json().get("response", "").strip()

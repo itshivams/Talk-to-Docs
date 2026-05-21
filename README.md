@@ -18,7 +18,7 @@ flowchart LR
   Redis --> Worker["worker-service"]
   Worker --> RAG
   RAG --> Chroma[(ChromaDB)]
-  RAG --> LLM["Optional Ollama"]
+  RAG --> LLM["Ollama qwen2.5:0.5b"]
 ```
 
 ## Services
@@ -29,6 +29,7 @@ flowchart LR
 - `session-service`: Go chat-session orchestration, URL validation, SSRF protection, document dedupe, and Redis ingestion jobs.
 - `rag-service`: FastAPI scraping, cleaning, chunking, embeddings, Chroma storage, Redis memory, and strict context-only chat.
 - `worker-service`: Redis queue consumer for background document ingestion.
+- `ollama`: lightweight local LLM for answer synthesis.
 - `postgres`, `redis`, `chroma`: persistence, cache/job memory, and vector storage.
 
 ## Quick Start
@@ -44,12 +45,19 @@ Open:
 - API gateway: `http://localhost:8080`
 - Chroma HTTP: `http://localhost:8001`
 
-The app works without Ollama by using a strict extractive fallback over retrieved chunks. For LLM generation, run Ollama locally and set:
+The default Docker stack runs a lightweight local Ollama model (`qwen2.5:0.5b`) for natural answers. The first startup downloads the model into the `ollama_data` Docker volume. To use a different Ollama model, set:
+
+```bash
+OLLAMA_MODEL=llama3.1
+```
+
+To use Ollama running on your host instead of the Compose service, set:
 
 ```bash
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=llama3.1
 ```
+
+If Ollama is unavailable, the app falls back to a strict extractive answer over retrieved chunks.
 
 By default, the Docker RAG image uses the built-in hash embedder to avoid pulling multi-GB PyTorch/CUDA wheels. To opt into `sentence-transformers` embeddings, build the RAG image with:
 
