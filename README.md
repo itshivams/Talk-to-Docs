@@ -51,6 +51,12 @@ OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=llama3.1
 ```
 
+By default, the Docker RAG image uses the built-in hash embedder to avoid pulling multi-GB PyTorch/CUDA wheels. To opt into `sentence-transformers` embeddings, build the RAG image with:
+
+```bash
+docker compose build --build-arg INSTALL_ML_EMBEDDINGS=true rag-service
+```
+
 ## Core Guarantees
 
 - A chat session is linked to exactly one `source_url` and `doc_id`.

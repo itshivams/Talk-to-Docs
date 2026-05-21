@@ -10,7 +10,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+COPY requirements-ml.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+ARG INSTALL_ML_EMBEDDINGS=false
+RUN if [ "$INSTALL_ML_EMBEDDINGS" = "true" ]; then \
+        pip install --no-cache-dir -r requirements-ml.txt; \
+    fi
 
 COPY app ./app
 
