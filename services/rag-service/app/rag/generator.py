@@ -8,16 +8,18 @@ from app.core.prompts import MISSING_ANSWER, STRICT_SYSTEM_PROMPT
 
 
 async def generate_answer(question: str, chunks: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
-    relevant = _filter_relevant(question, chunks)
-    if not relevant:
+    if not chunks:
         return MISSING_ANSWER
 
+    relevant = _filter_relevant(question, chunks)
+    answer_chunks = relevant or chunks[: settings.top_k]
+
     if settings.ollama_base_url:
-        answer = await _generate_with_ollama(question, relevant, history)
+        answer = await _generate_with_ollama(question, answer_chunks, history)
         if answer:
             return answer
 
-    return _extractive_answer(question, relevant)
+    return _extractive_answer(question, answer_chunks)
 
 
 async def _generate_with_ollama(question: str, chunks: list[dict[str, Any]], history: list[dict[str, Any]]) -> str | None:
@@ -54,7 +56,7 @@ Answer:"""
 def _filter_relevant(question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     q_terms = _terms(question)
     if not q_terms:
-        return []
+        return chunks[: settings.top_k]
     scored: list[tuple[int, dict[str, Any]]] = []
     for chunk in chunks:
         text_terms = _terms(chunk["text"])
@@ -68,19 +70,31 @@ def _filter_relevant(question: str, chunks: list[dict[str, Any]]) -> list[dict[s
 def _extractive_answer(question: str, chunks: list[dict[str, Any]]) -> str:
     q_terms = _terms(question)
     sentences: list[tuple[int, str]] = []
+    fallback_sentences: list[str] = []
     for chunk in chunks:
         for sentence in re.split(r"(?<=[.!?])\s+|\n+", chunk["text"]):
             cleaned = " ".join(sentence.split())
             if len(cleaned) < 40:
                 continue
+            fallback_sentences.append(cleaned)
             overlap = len(q_terms & _terms(cleaned))
             if overlap:
                 sentences.append((overlap, cleaned))
-    if not sentences:
+
+    if sentences:
+        sentences.sort(key=lambda item: item[0], reverse=True)
+        answer_sentences = [sentence for _, sentence in sentences[:4]]
+    else:
+        answer_sentences = fallback_sentences[:4]
+
+    if not answer_sentences:
+        excerpts = [" ".join(chunk.get("text", "").split()) for chunk in chunks]
+        answer_sentences = [excerpt[:500] for excerpt in excerpts if excerpt]
+
+    if not answer_sentences:
         return MISSING_ANSWER
-    sentences.sort(key=lambda item: item[0], reverse=True)
-    answer_lines = [sentence for _, sentence in sentences[:4]]
-    return "\n".join(f"- {line}" for line in answer_lines)
+
+    return " ".join(answer_sentences)
 
 
 def _terms(text: str) -> set[str]:
