@@ -66,5 +66,22 @@ func mustProxy(rawURL string) *httputil.ReverseProxy {
 		log.Printf("proxy error to %s: %v", target.String(), err)
 		http.Error(w, `{"error":"upstream unavailable"}`, http.StatusBadGateway)
 	}
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		stripUpstreamCORS(resp.Header)
+		return nil
+	}
 	return proxy
+}
+
+func stripUpstreamCORS(header http.Header) {
+	for _, key := range []string{
+		"Access-Control-Allow-Origin",
+		"Access-Control-Allow-Credentials",
+		"Access-Control-Allow-Headers",
+		"Access-Control-Allow-Methods",
+		"Access-Control-Expose-Headers",
+		"Access-Control-Max-Age",
+	} {
+		header.Del(key)
+	}
 }

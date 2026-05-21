@@ -77,7 +77,7 @@ services:
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
-      ALLOWED_ORIGINS: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,7 +109,7 @@ services:
       SESSION_SERVICE_URL: http://session-service:8082
       RAG_SERVICE_URL: http://rag-service:8000
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      ALLOWED_ORIGINS: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       RATE_LIMIT_PER_MINUTE: 120
     ports:
       - "8080:8080"
