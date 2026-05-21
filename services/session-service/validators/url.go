@@ -31,6 +31,13 @@ type URLValidator struct {
 	client *http.Client
 }
 
+var (
+	titleRe      = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
+	noiseBlockRe = regexp.MustCompile(`(?is)<(?:script|style|noscript|svg|canvas|iframe|nav|footer|aside|form|button)[^>]*>.*?</(?:script|style|noscript|svg|canvas|iframe|nav|footer|aside|form|button)>`)
+	tagRe        = regexp.MustCompile(`(?is)<[^>]+>`)
+	spaceRe      = regexp.MustCompile(`\s+`)
+)
+
 func NewURLValidator(cfg config.Config) *URLValidator {
 	return &URLValidator{
 		cfg: cfg,
@@ -180,8 +187,7 @@ func textualContentType(contentType string) bool {
 }
 
 func extractTitle(html string) string {
-	re := regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
-	match := re.FindStringSubmatch(html)
+	match := titleRe.FindStringSubmatch(html)
 	if len(match) < 2 {
 		return "Untitled documentation"
 	}
@@ -196,19 +202,16 @@ func extractTitle(html string) string {
 }
 
 func extractMeaningfulText(html string) string {
-	noise := regexp.MustCompile(`(?is)<(script|style|noscript|svg|canvas|iframe|nav|footer|aside|form|button)[^>]*>.*?</\1>`)
-	html = noise.ReplaceAllString(html, " ")
+	html = noiseBlockRe.ReplaceAllString(html, " ")
 	return cleanWhitespace(stripTags(html))
 }
 
 func stripTags(input string) string {
-	re := regexp.MustCompile(`(?is)<[^>]+>`)
-	return re.ReplaceAllString(input, " ")
+	return tagRe.ReplaceAllString(input, " ")
 }
 
 func cleanWhitespace(input string) string {
-	space := regexp.MustCompile(`\s+`)
-	return strings.TrimSpace(space.ReplaceAllString(input, " "))
+	return strings.TrimSpace(spaceRe.ReplaceAllString(input, " "))
 }
 
 func looksLikeDocumentation(parsed *url.URL, html string, text string) bool {
