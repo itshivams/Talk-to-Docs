@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4efe6;
+  --foreground: #1d211c;
+  --ink: #1d211c;
+  --paper: #fffaf0;
+  --clay: #c45f3a;
+  --moss: #586f4a;
+  --charcoal: #22251f;
+  --sand: #e5d2ad;
+  --line: rgba(29, 33, 28, 0.16);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Avenir Next", "Space Grotesk", ui-sans-serif, sans-serif;
+  --font-mono: "Berkeley Mono", "SFMono-Regular", ui-monospace, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Avenir Next", "Space Grotesk", ui-sans-serif, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.grain {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(196, 95, 58, 0.22), transparent 28%),
+    radial-gradient(circle at 88% 5%, rgba(88, 111, 74, 0.22), transparent 30%),
+    linear-gradient(135deg, #f4efe6 0%, #fffaf0 45%, #e7d4b2 100%);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 240, 0.78);
+  box-shadow: 0 24px 80px rgba(34, 37, 31, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.btn-primary {
+  background: var(--charcoal);
+  color: var(--paper);
+  border: 1px solid var(--charcoal);
+}
+
+.btn-primary:hover {
+  background: #11130f;
+}
+
+.btn-secondary {
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 240, 0.7);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 240, 0.9);
+  color: var(--ink);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 4px rgba(196, 95, 58, 0.12);
+}
+
+.fade-in {
+  animation: fade-in 420ms ease both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,136 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: talk_to_docs
+      POSTGRES_USER: talk
+      POSTGRES_PASSWORD: talk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talk -d talk_to_docs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  chroma:
+    image: chromadb/chroma:0.6.3
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+
+  auth-service:
+    build: ./services/auth-service
+    environment:
+      PORT: 8081
+      DATABASE_URL: postgres://talk:talk@postgres:5432/talk_to_docs?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_MINUTES: 60
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  session-service:
+    build: ./services/session-service
+    environment:
+      PORT: 8082
+      DATABASE_URL: postgres://talk:talk@postgres:5432/talk_to_docs?sslmode=disable
+      REDIS_ADDR: redis:6379
+      INGEST_QUEUE: ingest_jobs
+      SCRAPE_TIMEOUT_SECONDS: 12
+      MAX_PAGE_BYTES: 2000000
+      MIN_TEXT_CHARS: 500
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  rag-service:
+    build: ./services/rag-service
+    environment:
+      DATABASE_URL: postgresql://talk:talk@postgres:5432/talk_to_docs
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION: talk_to_docs_chunks
+      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      ALLOWED_ORIGINS: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+
+  worker-service:
+    build: ./services/worker-service
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      INGEST_QUEUE: ingest_jobs
+      RAG_SERVICE_URL: http://rag-service:8000
+      MAX_JOB_ATTEMPTS: 3
+      JOB_RETRY_DELAY_SECONDS: 5
+      INGEST_TIMEOUT_SECONDS: 180
+    depends_on:
+      rag-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./services/api-gateway
+    environment:
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8081
+      SESSION_SERVICE_URL: http://session-service:8082
+      RAG_SERVICE_URL: http://rag-service:8000
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ALLOWED_ORIGINS: http://localhost:3000
+      RATE_LIMIT_PER_MINUTE: 120
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - session-service
+      - rag-service
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:

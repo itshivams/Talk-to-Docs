@@ -1,0 +1,11 @@
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+pydantic-settings==2.7.1
+httpx==0.28.1
+beautifulsoup4==4.12.3
+trafilatura==2.0.0
+redis==5.2.1
+psycopg[binary]==3.2.4
+chromadb==0.6.3
+sentence-transformers==3.4.1
+numpy==2.2.2
