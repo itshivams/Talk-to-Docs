@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ func Auth(secret string, publicPaths map[string]bool) func(http.Handler) http.Ha
 			}
 			claims, err := parseJWT(token, secret)
 			if err != nil {
+				log.Printf("Auth failed for path %q: %v (Upgrade header: %q)", r.URL.Path, err, r.Header.Get("Upgrade"))
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 				return
 			}
