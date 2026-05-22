@@ -28,23 +28,15 @@ async def chat(payload: ChatRequest, x_user_id: str = Header(default="")) -> Cha
 
     memory = RedisMemory()
     history = memory.history(user_id=x_user_id, session_id=payload.session_id, doc_id=session["doc_id"])
+    greeting = _greeting_answer(payload.question, session) if payload.mode == "ask" else None
+    if greeting:
+        _store_turn(payload.session_id, x_user_id, session, payload.question, greeting, [], memory)
+        return ChatResponse(answer=greeting, sources=[])
     chunks = Retriever().retrieve(user_id=x_user_id, session_id=payload.session_id, doc_id=session["doc_id"], question=payload.question)
     answer = await generate_answer(payload.question, chunks, history, payload.mode)
     sources = _sources(chunks if answer != MISSING_ANSWER else [])
 
-    _save_message(payload.session_id, "user", payload.question, [])
-    _save_message(payload.session_id, "assistant", answer, [source.model_dump() for source in sources])
-    memory.append(user_id=x_user_id, session_id=payload.session_id, doc_id=session["doc_id"], source_url=session["source_url"], role="user", content=payload.question)
-    memory.append(
-        user_id=x_user_id,
-        session_id=payload.session_id,
-        doc_id=session["doc_id"],
-        source_url=session["source_url"],
-        role="assistant",
-        content=answer,
-        sources=[source.model_dump() for source in sources],
-    )
-    _touch_session(payload.session_id, x_user_id)
+    _store_turn(payload.session_id, x_user_id, session, payload.question, answer, sources, memory)
 
     return ChatResponse(answer=answer, sources=sources)
 
@@ -171,6 +163,13 @@ async def _stream_chat_answer(session_id: str, user_id: str, websocket: WebSocke
 
     memory = RedisMemory()
     history = memory.history(user_id=user_id, session_id=session_id, doc_id=session["doc_id"])
+    greeting = _greeting_answer(question, session) if mode == "ask" else None
+    if greeting:
+        await websocket.send_json(jsonable_encoder({"type": "answer_start", "question": question, "sources": []}))
+        await websocket.send_json({"type": "answer_delta", "delta": greeting})
+        _store_turn(session_id, user_id, session, question, greeting, [], memory)
+        await websocket.send_json({"type": "answer_done", "answer": greeting, "sources": []})
+        return
     chunks = Retriever().retrieve(user_id=user_id, session_id=session_id, doc_id=session["doc_id"], question=question)
     sources = _sources(chunks)
     _save_message(session_id, "user", question, [])
@@ -196,6 +195,39 @@ async def _stream_chat_answer(session_id: str, user_id: str, websocket: WebSocke
     )
     _touch_session(session_id, user_id)
     await websocket.send_json(jsonable_encoder({"type": "answer_done", "answer": answer, "sources": answer_sources}))
+
+
+def _store_turn(
+    session_id: str,
+    user_id: str,
+    session: dict[str, Any],
+    question: str,
+    answer: str,
+    sources: list[SourceReference],
+    memory: RedisMemory,
+) -> None:
+    _save_message(session_id, "user", question, [])
+    _save_message(session_id, "assistant", answer, [source.model_dump() for source in sources])
+    memory.append(user_id=user_id, session_id=session_id, doc_id=session["doc_id"], source_url=session["source_url"], role="user", content=question)
+    memory.append(
+        user_id=user_id,
+        session_id=session_id,
+        doc_id=session["doc_id"],
+        source_url=session["source_url"],
+        role="assistant",
+        content=answer,
+        sources=[source.model_dump() for source in sources],
+    )
+    _touch_session(session_id, user_id)
+
+
+def _greeting_answer(question: str, session: dict[str, Any]) -> str | None:
+    normalized = " ".join(question.lower().split()).strip(" .!?")
+    greetings = {"hi", "hello", "hey", "hii", "good morning", "good afternoon", "good evening"}
+    if normalized not in greetings:
+        return None
+    title = session.get("title") or session.get("document_title") or "this document"
+    return f"Hi. I am here to help with **{title}**. Ask me anything grounded in this document."
 
 
 def _suggested_questions(session: dict[str, Any]) -> list[str]:

@@ -13,16 +13,9 @@ MODE_INSTRUCTIONS = {
     "summarize": "Summarize the document context with its main ideas and important details.",
     "explain": "Explain the relevant document context simply, using short clear sentences.",
     "notes": "Create concise Markdown notes with headings and bullets. Use fenced code blocks with a language tag for code.",
-    "quiz": """Create a multiple-choice quiz using this exact Markdown shape for each question:
-### Question 1
-Question text
-A. Option text
-B. Option text
-C. Option text
-D. Option text
-Correct answer: A
-Explanation: One short explanation grounded in the document.
-Return 3 to 5 questions and do not use tables.""",
+    "quiz": """Create 3 to 5 multiple-choice quiz questions from the documentation.
+Each question must have a Markdown heading formatted as '### Question N', a concrete question, four concrete options labeled A. through D., one line formatted 'Correct answer: X', and one line formatted 'Explanation: ...'.
+Do not write placeholder words such as 'Question text' or 'Option text'. Do not use tables.""",
     "actions": "Extract action items, steps, or decisions supported by the document. Say when none are present.",
 }
 
@@ -32,13 +25,17 @@ async def generate_answer(question: str, chunks: list[dict[str, Any]], history: 
         return MISSING_ANSWER
 
     relevant = _filter_relevant(question, chunks)
+    if mode == "ask" and not relevant and _looks_external_fact_request(question):
+        return MISSING_ANSWER
     answer_chunks = relevant or chunks[: settings.top_k]
 
     if settings.ollama_base_url:
         answer = await _generate_with_ollama(question, answer_chunks, history, mode)
         if answer:
-            return answer
+            return _usable_quiz(answer, answer_chunks) if mode == "quiz" else answer
 
+    if mode == "quiz":
+        return _quiz_fallback(answer_chunks)
     return _extractive_answer(question, answer_chunks)
 
 
@@ -48,7 +45,17 @@ async def stream_answer(question: str, chunks: list[dict[str, Any]], history: li
         return
 
     relevant = _filter_relevant(question, chunks)
+    if mode == "ask" and not relevant and _looks_external_fact_request(question):
+        yield MISSING_ANSWER
+        return
     answer_chunks = relevant or chunks[: settings.top_k]
+    if settings.ollama_base_url and mode == "quiz":
+        answer = await _generate_with_ollama(question, answer_chunks, history, mode)
+        answer = _usable_quiz(answer or "", answer_chunks)
+        for part in re.findall(r"\S+\s*", answer):
+            yield part
+        return
+
     if settings.ollama_base_url:
         streamed = False
         async for token in _stream_with_ollama(question, answer_chunks, history, mode):
@@ -141,6 +148,52 @@ def _ollama_payload(prompt: str, *, stream: bool) -> dict[str, Any]:
     }
 
 
+def _usable_quiz(answer: str, chunks: list[dict[str, Any]]) -> str:
+    required = ("### Question", "Correct answer:", "Explanation:")
+    placeholders = ("question text", "option text", "correct answer: x")
+    lowered = answer.lower()
+    if all(marker.lower() in lowered for marker in required) and not any(marker in lowered for marker in placeholders):
+        return answer
+    return _quiz_fallback(chunks)
+
+
+def _quiz_fallback(chunks: list[dict[str, Any]]) -> str:
+    facts: list[str] = []
+    for chunk in chunks:
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", str(chunk.get("text", ""))):
+            cleaned = " ".join(sentence.split()).strip(" -*")
+            if 45 <= len(cleaned) <= 220 and cleaned not in facts:
+                facts.append(cleaned)
+            if len(facts) == 3:
+                break
+        if len(facts) == 3:
+            break
+
+    if not facts:
+        return _extractive_answer("quiz", chunks)
+
+    sections: list[str] = []
+    for index, fact in enumerate(facts, start=1):
+        options = [
+            fact,
+            "The document says this topic has no defined behavior.",
+            "The document requires an unrelated external source for every step.",
+            "The document describes the opposite result without exceptions.",
+        ]
+        sections.append(
+            "\n".join(
+                [
+                    f"### Question {index}",
+                    "Which statement is supported by the document?",
+                    *(f"{letter}. {option}" for letter, option in zip("ABCD", options, strict=False)),
+                    "Correct answer: A",
+                    f"Explanation: {fact}",
+                ]
+            )
+        )
+    return "\n\n".join(sections)
+
+
 def _filter_relevant(question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     q_terms = _terms(question)
     if not q_terms:
@@ -153,6 +206,15 @@ def _filter_relevant(question: str, chunks: list[dict[str, Any]]) -> list[dict[s
             scored.append((overlap, chunk))
     scored.sort(key=lambda item: (item[0], -item[1].get("distance", 1.0)), reverse=True)
     return [chunk for _, chunk in scored[: settings.top_k]]
+
+
+def _looks_external_fact_request(question: str) -> bool:
+    lowered = question.lower()
+    return bool(
+        re.search(r"\bwho\s+is\b", lowered)
+        or re.search(r"\b(current|today|latest)\b", lowered)
+        or re.search(r"\b(pm|prime minister|president|weather|news|stock price)\b", lowered)
+    )
 
 
 def _extractive_answer(question: str, chunks: list[dict[str, Any]]) -> str:

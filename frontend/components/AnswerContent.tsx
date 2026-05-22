@@ -125,11 +125,11 @@ function parseQuiz(content: string): QuizQuestion[] {
       .filter(Boolean);
     const answerLine = lines.find((line) => /^Correct answer:\s*[A-D]\b/i.test(line));
     const explanationLine = lines.find((line) => /^Explanation:/i.test(line));
-    const optionLines = lines.filter((line) => /^[A-D][.)]\s+/.test(line));
-    const prompt = lines.find((line) => !/^([A-D][.)]\s+|Correct answer:|Explanation:)/i.test(line)) || "";
+    const optionLines = lines.filter((line) => /^[A-D][.)]\s*/.test(line));
+    const prompt = lines.find((line) => !/^([A-D][.)]\s*|Correct answer:|Explanation:)/i.test(line)) || "";
     const answer = answerLine?.match(/^Correct answer:\s*([A-D])\b/i)?.[1]?.toUpperCase() || "";
     const options = optionLines.map((line) => {
-      const match = line.match(/^([A-D])[.)]\s+(.+)$/);
+      const match = line.match(/^([A-D])[.)]\s*(.+)$/);
       return { key: match?.[1] || "", text: match?.[2] || "" };
     });
     return {

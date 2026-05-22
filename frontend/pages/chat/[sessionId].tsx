@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { Check, Copy, Plus, Volume2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 
@@ -31,6 +32,7 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [mode, setMode] = useState<AnswerMode>("ask");
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -175,6 +177,7 @@ export default function ChatPage() {
                     >
                       {message.role === "assistant" ? <AnswerContent content={message.content} /> : <p className="whitespace-pre-wrap break-words">{message.content}</p>}
                       {message.role === "assistant" ? <SourceReferences sources={message.sources || []} /> : null}
+                      <MessageActions content={message.content} inverse={message.role === "user"} />
                     </div>
                   </article>
                 ))}
@@ -207,21 +210,38 @@ export default function ChatPage() {
             <div className="mx-auto w-full max-w-3xl">
               {error ? <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
               {chatStream.error ? <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{chatStream.error}</p> : null}
-              <div className="mb-2 flex gap-1 overflow-x-auto pb-1">
-                {answerModes.map((answerMode) => (
-                  <button
-                    key={answerMode.value}
-                    type="button"
-                    className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
-                      mode === answerMode.value ? "border-black bg-black text-white" : "border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--line-strong)]"
-                    }`}
-                    onClick={() => setMode(answerMode.value)}
-                  >
-                    {answerMode.label}
-                  </button>
-                ))}
-              </div>
               <div className="flex items-end gap-2 rounded-lg border border-[var(--line)] bg-white p-2 focus-within:border-black focus-within:shadow-[0_0_0_3px_rgba(13,13,13,0.08)]">
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    className="btn-secondary grid h-10 w-10 place-items-center rounded-lg"
+                    aria-label="Choose answer mode"
+                    title="Choose answer mode"
+                    onClick={() => setModeMenuOpen((value) => !value)}
+                  >
+                    <Plus className={`h-4 w-4 transition ${modeMenuOpen ? "rotate-45" : ""}`} />
+                  </button>
+                  {modeMenuOpen ? (
+                    <div className="absolute bottom-12 left-0 z-20 w-52 rounded-lg border border-[var(--line)] bg-white p-1 shadow-[0_18px_48px_rgba(0,0,0,0.14)]">
+                      {answerModes.map((answerMode) => (
+                        <button
+                          key={answerMode.value}
+                          type="button"
+                          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm ${
+                            mode === answerMode.value ? "bg-black text-white" : "hover:bg-[var(--soft)]"
+                          }`}
+                          onClick={() => {
+                            setMode(answerMode.value);
+                            setModeMenuOpen(false);
+                          }}
+                        >
+                          {answerMode.label}
+                          {mode === answerMode.value ? <Check className="h-4 w-4" /> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <textarea
                   className="max-h-40 min-h-12 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm leading-6 outline-none"
                   value={question}
@@ -239,6 +259,46 @@ export default function ChatPage() {
       </div>
     </main>
   );
+}
+
+function MessageActions({ content, inverse }: { content: string; inverse: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  function speak() {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(readableSpeech(content)));
+  }
+
+  const actionClass = inverse ? "text-white/70 hover:bg-white/15 hover:text-white" : "text-[var(--muted)] hover:bg-[var(--soft)] hover:text-black";
+  return (
+    <div className={`mt-2 flex gap-1 ${inverse ? "justify-end" : "justify-start"}`}>
+      <button type="button" className={`grid h-7 w-7 place-items-center rounded-md ${actionClass}`} aria-label="Copy message" title="Copy message" onClick={copy}>
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      <button type="button" className={`grid h-7 w-7 place-items-center rounded-md ${actionClass}`} aria-label="Read message aloud" title="Read message aloud" onClick={speak}>
+        <Volume2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function readableSpeech(content: string) {
+  return content
+    .replace(/```[\s\S]*?```/g, " code block ")
+    .replace(/[`*_#>|[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function ProgressStep({ step, status }: { step: ChatSession["status"]; status?: ChatSession["status"] }) {
