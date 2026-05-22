@@ -35,7 +35,7 @@ func Auth(secret string, publicPaths map[string]bool) func(http.Handler) http.Ha
 			}
 
 			token := bearerToken(r.Header.Get("Authorization"))
-			if token == "" && isWebSocketRequest(r) {
+			if token == "" {
 				token = strings.TrimSpace(r.URL.Query().Get("access_token"))
 			}
 			claims, err := parseJWT(token, secret)
