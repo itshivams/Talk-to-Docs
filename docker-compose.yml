@@ -117,7 +117,7 @@ services:
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
-      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000, http://103.120.30.50:3000, https://talk-to-docs.itshivam.in
+      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000, http://103.120.30.50:3000, https://talk-to-docs.itshivam.in, http://talk-to-docs.itshivam.in
     depends_on:
       postgres-migrate:
         condition: service_completed_successfully
@@ -151,7 +151,7 @@ services:
       SESSION_SERVICE_URL: http://session-service:8082
       RAG_SERVICE_URL: http://rag-service:8000
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000, http://103.120.30.50:3000, https://talk-to-docs.itshivam.in
+      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000, http://103.120.30.50:3000, https://talk-to-docs.itshivam.in, http://talk-to-docs.itshivam.in
       RATE_LIMIT_PER_MINUTE: 120
     ports:
       - "8080:8080"
@@ -164,9 +164,9 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://103.120.30.50:8080
+        NEXT_PUBLIC_API_BASE_URL: http://talk-to-docs.itshivam.in/api
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://103.120.30.50:8080
+      NEXT_PUBLIC_API_BASE_URL: http://talk-to-docs.itshivam.in/api
     ports:
       - "3000:3000"
     depends_on:
