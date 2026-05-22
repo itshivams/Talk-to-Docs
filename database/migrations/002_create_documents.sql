@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS documents (
     source_url TEXT NOT NULL,
     url_hash TEXT NOT NULL,
     title TEXT NOT NULL DEFAULT 'Untitled documentation',
-    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'ready', 'error')),
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'fetching', 'parsing', 'chunking', 'embedding', 'ready', 'error')),
     chunk_count INTEGER NOT NULL DEFAULT 0,
     error_message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

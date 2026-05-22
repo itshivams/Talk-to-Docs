@@ -67,18 +67,21 @@ def document_status(doc_id: str, x_user_id: str = Header(default="")) -> dict[st
 
 async def _ingest(payload: IngestRequest) -> dict[str, Any]:
     try:
-        _update_status(payload.doc_id, payload.session_id, payload.user_id, "processing")
+        _update_status(payload.doc_id, payload.session_id, payload.user_id, "fetching")
         final_url, html = await fetch_page(str(payload.source_url))
+        _update_status(payload.doc_id, payload.session_id, payload.user_id, "parsing")
         soup = clean_html(html)
         text = meaningful_text(soup)
         if not looks_like_documentation(final_url, html, text):
             raise URLRejected(settings.invalid_url_message)
         parsed = parse_document(soup)
+        _update_status(payload.doc_id, payload.session_id, payload.user_id, "chunking")
         chunks = chunk_document(parsed)
         if not chunks:
             raise URLRejected(settings.invalid_url_message)
 
         title = payload.title or parsed.title
+        _update_status(payload.doc_id, payload.session_id, payload.user_id, "embedding")
         VectorStore().upsert_chunks(
             user_id=payload.user_id,
             session_id=payload.session_id,

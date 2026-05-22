@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres-migrate:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: talk
+    volumes:
+      - ./database/migrations:/migrations:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        for migration in /migrations/*.sql; do
+          psql -h postgres -U talk -d talk_to_docs -v ON_ERROR_STOP=1 -f "$$migration"
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     ports:
@@ -70,8 +87,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_MINUTES: 60
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
 
   session-service:
     build: ./services/session-service
@@ -84,8 +101,8 @@ services:
       MAX_PAGE_BYTES: 2000000
       MIN_TEXT_CHARS: 500
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -102,8 +119,8 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
       ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       chroma:

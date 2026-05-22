@@ -31,11 +31,11 @@ export default function LoginPage() {
     <AuthCard mode="login" error={error} loading={loading} onSubmit={submit}>
       <label className="block text-sm font-bold">
         Email
-        <input className="input mt-2 rounded-2xl px-4 py-3" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input className="input mt-2 rounded-lg px-4 py-3" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
       </label>
       <label className="block text-sm font-bold">
         Password
-        <input className="input mt-2 rounded-2xl px-4 py-3" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <input className="input mt-2 rounded-lg px-4 py-3" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
       </label>
     </AuthCard>
   );

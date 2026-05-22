@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     doc_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     source_url TEXT NOT NULL,
     title TEXT NOT NULL DEFAULT 'Untitled documentation',
-    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'ready', 'error')),
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'fetching', 'parsing', 'chunking', 'embedding', 'ready', 'error')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chat_sessions_single_document CHECK (source_url <> '')

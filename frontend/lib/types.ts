@@ -11,10 +11,13 @@ export type ChatSession = {
   doc_id: string;
   source_url: string;
   title: string;
-  status: "queued" | "processing" | "ready" | "error";
+  status: "queued" | "processing" | "fetching" | "parsing" | "chunking" | "embedding" | "ready" | "error";
+  error_message?: string;
   created_at: string;
   updated_at: string;
 };
+
+export type AnswerMode = "ask" | "summarize" | "explain" | "notes" | "quiz" | "actions";
 
 export type SourceReference = {
   doc_id: string;

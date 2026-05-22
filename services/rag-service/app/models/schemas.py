@@ -20,6 +20,7 @@ class IngestRequest(BaseModel):
 class ChatRequest(BaseModel):
     session_id: str
     question: str = Field(min_length=1, max_length=4000)
+    mode: str = Field(default="ask", pattern="^(ask|summarize|explain|notes|quiz|actions)$")
 
 
 class SourceReference(BaseModel):

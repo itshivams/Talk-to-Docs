@@ -23,16 +23,16 @@ export default function DashboardPage() {
   const sessions = data?.sessions ?? [];
 
   return (
-    <main className="grain min-h-screen px-5 py-6 md:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+    <main className="grain min-h-screen">
+      <div className="mx-auto max-w-7xl px-4 py-5 md:px-6">
+        <header className="mb-5 flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-5 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-[var(--clay)]">Documentation QA</p>
-            <h1 className="mt-2 text-5xl font-black tracking-[-0.06em] md:text-7xl">Talk to Docs</h1>
+            <p className="text-xs font-semibold uppercase text-[var(--muted)]">Documentation QA</p>
+            <h1 className="mt-2 text-3xl font-semibold md:text-4xl">Talk to Docs</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full border border-black/10 bg-white/40 px-4 py-2 text-sm text-black/60">{user?.email}</span>
-            <button className="btn-secondary rounded-full px-4 py-2 text-sm font-bold" onClick={logout}>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="truncate rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--muted)]">{user?.email}</span>
+            <button className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold" onClick={logout}>
               Logout
             </button>
           </div>
@@ -40,29 +40,29 @@ export default function DashboardPage() {
 
         <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <NewChatForm />
-          <section className="panel rounded-[2rem] p-6 md:p-8">
+          <section className="rounded-lg border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--moss)]">Chat history</p>
-                <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Previous sources</h2>
+                <p className="text-xs font-semibold uppercase text-[var(--muted)]">Chat history</p>
+                <h2 className="mt-2 text-2xl font-semibold">Previous sources</h2>
               </div>
-              <span className="rounded-full bg-[var(--sand)] px-3 py-1 text-xs font-bold">{sessions.length} sessions</span>
+              <span className="rounded-lg border border-[var(--line)] px-3 py-1 text-xs font-semibold">{sessions.length} sessions</span>
             </div>
             <div className="mt-6 grid gap-3">
-              {isLoading ? <p className="text-sm text-black/50">Loading sessions...</p> : null}
+              {isLoading ? <p className="text-sm text-[var(--muted)]">Loading sessions...</p> : null}
               {sessions.map((session) => (
-                <Link key={session.id} href={`/chat/${session.id}`} className="rounded-3xl border border-black/10 bg-white/45 p-4 transition hover:-translate-y-0.5 hover:bg-white/75">
+                <Link key={session.id} href={`/chat/${session.id}`} className="rounded-lg border border-[var(--line)] bg-white p-4 transition hover:border-[var(--line-strong)] hover:bg-[var(--soft)]">
                   <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
-                    <div>
-                      <p className="text-lg font-black tracking-[-0.03em]">{session.title || "Untitled documentation"}</p>
-                      <p className="mt-1 max-w-xl truncate text-sm text-black/55">{session.source_url}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold">{session.title || "Untitled documentation"}</p>
+                      <p className="mt-1 max-w-xl truncate text-sm text-[var(--muted)]">{session.source_url}</p>
                     </div>
-                    <span className="w-fit rounded-full border border-black/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">{session.status}</span>
+                    <span className="w-fit rounded-lg border border-[var(--line)] px-3 py-1 text-xs font-semibold capitalize">{session.status}</span>
                   </div>
                 </Link>
               ))}
               {!isLoading && !sessions.length ? (
-                <div className="rounded-3xl border border-dashed border-black/15 p-8 text-sm text-black/55">
+                <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-sm text-[var(--muted)]">
                   Create a new chat by pasting one valid documentation or article URL.
                 </div>
               ) : null}

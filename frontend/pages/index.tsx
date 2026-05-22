@@ -14,7 +14,7 @@ export default function Home() {
 
   return (
     <main className="grain flex min-h-screen items-center justify-center">
-      <p className="rounded-full border border-black/10 bg-white/50 px-5 py-3 text-sm text-black/60">Loading Talk to Docs...</p>
+      <p className="rounded-lg border border-[var(--line)] bg-white px-5 py-3 text-sm text-[var(--muted)]">Loading Talk to Docs...</p>
     </main>
   );
 }

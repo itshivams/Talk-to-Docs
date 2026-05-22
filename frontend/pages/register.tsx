@@ -32,15 +32,15 @@ export default function RegisterPage() {
     <AuthCard mode="register" error={error} loading={loading} onSubmit={submit}>
       <label className="block text-sm font-bold">
         Name
-        <input className="input mt-2 rounded-2xl px-4 py-3" value={name} onChange={(event) => setName(event.target.value)} required />
+        <input className="input mt-2 rounded-lg px-4 py-3" value={name} onChange={(event) => setName(event.target.value)} required />
       </label>
       <label className="block text-sm font-bold">
         Email
-        <input className="input mt-2 rounded-2xl px-4 py-3" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input className="input mt-2 rounded-lg px-4 py-3" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
       </label>
       <label className="block text-sm font-bold">
         Password
-        <input className="input mt-2 rounded-2xl px-4 py-3" type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <input className="input mt-2 rounded-lg px-4 py-3" type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
       </label>
     </AuthCard>
   );

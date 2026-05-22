@@ -32,29 +32,29 @@ export function NewChatForm({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <form onSubmit={submit} className={compact ? "space-y-3" : "panel fade-in rounded-[2rem] p-6 md:p-8"}>
+    <form onSubmit={submit} className={compact ? "space-y-3" : "fade-in rounded-lg border border-[var(--line)] bg-white p-5 shadow-sm md:p-6"}>
       {!compact ? (
         <>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--clay)]">New chat</p>
-          <h2 className="mt-3 text-3xl font-black tracking-[-0.04em]">Paste one documentation or article URL.</h2>
-          <p className="mt-2 max-w-2xl text-sm text-black/60">
+          <p className="text-xs font-semibold uppercase text-[var(--muted)]">New chat</p>
+          <h2 className="mt-3 text-2xl font-semibold">Paste one documentation or article URL.</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
             This URL becomes the only factual source for the session. Social, video, audio, image-only, private-network, and low-text pages are rejected.
           </p>
         </>
       ) : null}
       <div className={compact ? "space-y-3" : "mt-6 flex flex-col gap-3 md:flex-row"}>
         <input
-          className="input rounded-2xl px-4 py-3 text-sm"
+          className="input rounded-lg px-4 py-3 text-sm"
           placeholder="https://docs.example.com/reference/..."
           value={url}
           onChange={(event) => setUrl(event.target.value)}
           required
         />
-        <button className="btn-primary whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-bold" disabled={loading}>
+        <button className="btn-primary whitespace-nowrap rounded-lg px-5 py-3 text-sm font-semibold" disabled={loading}>
           {loading ? "Validating..." : "Start chat"}
         </button>
       </div>
-      {error ? <p className="mt-3 rounded-2xl bg-red-100 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
     </form>
   );
 }

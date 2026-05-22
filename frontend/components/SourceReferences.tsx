@@ -3,21 +3,21 @@ import type { SourceReference } from "@/lib/types";
 export function SourceReferences({ sources }: { sources: SourceReference[] }) {
   if (!sources?.length) return null;
   return (
-    <div className="mt-3 space-y-2">
-      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-black/45">Sources</p>
-      {sources.map((source) => (
+    <div className="mt-4 border-t border-black/10 pt-3">
+      <p className="text-xs font-semibold text-[var(--muted)]">Sources</p>
+      {sources.map((source, index) => (
         <a
           key={`${source.doc_id}-${source.chunk_index}`}
           href={source.source_url}
           target="_blank"
           rel="noreferrer"
-          className="block rounded-2xl border border-black/10 bg-white/50 p-3 text-xs hover:bg-white"
+          className="mt-2 block text-xs leading-5 text-[var(--muted)] hover:text-black"
         >
-          <span className="font-bold">
-            Chunk {source.chunk_index}
+          <span className="font-semibold text-black">
+            Source {index + 1}
             {source.heading ? ` · ${source.heading}` : ""}
           </span>
-          <span className="mt-1 block text-black/55">{source.excerpt}</span>
+          <span className="mt-1 block">{source.excerpt}</span>
         </a>
       ))}
     </div>

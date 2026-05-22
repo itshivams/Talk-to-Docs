@@ -55,6 +55,16 @@ class VectorStore:
             matches.append({"text": document, "metadata": metadata, "distance": float(distance)})
         return matches
 
+    def session_chunks(self, *, user_id: str, session_id: str, doc_id: str, limit: int = 8) -> list[dict[str, Any]]:
+        result = self.collection.get(
+            where={"$and": [{"user_id": user_id}, {"session_id": session_id}, {"doc_id": doc_id}]},
+            include=["documents", "metadatas"],
+            limit=limit,
+        )
+        docs = result.get("documents", [])
+        metas = result.get("metadatas", [])
+        return [{"text": document, "metadata": metadata or {}} for document, metadata in zip(docs, metas, strict=False)]
+
     def delete_session(self, *, session_id: str, doc_id: str) -> None:
         try:
             self.collection.delete(where={"$and": [{"session_id": session_id}, {"doc_id": doc_id}]})
