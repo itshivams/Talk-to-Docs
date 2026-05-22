@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FormEvent, ReactNode } from "react";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 type AuthCardProps = {
   mode: "login" | "register";
   error: string;
@@ -12,7 +14,10 @@ type AuthCardProps = {
 export function AuthCard({ mode, error, loading, children, onSubmit }: AuthCardProps) {
   const isLogin = mode === "login";
   return (
-    <main className="grain flex min-h-screen items-center justify-center px-4 py-8">
+    <main className="grain relative flex min-h-screen items-center justify-center px-4 py-8">
+      <div className="absolute right-4 top-4 md:right-6 md:top-6">
+        <ThemeToggle />
+      </div>
       <section className="fade-in grid w-full max-w-5xl overflow-hidden rounded-lg border border-[var(--line)] bg-white shadow-sm md:grid-cols-[1fr_420px]">
         <div className="flex min-h-[340px] flex-col justify-between border-b border-[var(--line)] bg-black p-8 text-white md:border-b-0 md:border-r md:p-10">
           <div>

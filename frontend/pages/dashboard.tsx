@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 import { NewChatForm } from "@/components/NewChatForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/lib/auth";
 import { useAuthedSWR } from "@/lib/useAuthedSWR";
 import type { ChatSession } from "@/lib/types";
@@ -32,6 +33,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
             <span className="truncate rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--muted)]">{user?.email}</span>
+            <ThemeToggle />
             <button className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold" onClick={logout}>
               Logout
             </button>

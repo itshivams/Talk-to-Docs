@@ -14,6 +14,20 @@
   --shadow-soft: 0 1px 2px rgba(15, 15, 15, 0.05), 0 10px 30px rgba(15, 15, 15, 0.04);
 }
 
+[data-theme="dark"] {
+  --background: #090909;
+  --foreground: #f5f5f5;
+  --ink: #f5f5f5;
+  --paper: #111111;
+  --muted: #a8a8a8;
+  --soft: #171717;
+  --soft-strong: #202020;
+  --line: #2b2b2b;
+  --line-strong: #424242;
+  --inverse: #f5f5f5;
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.34), 0 14px 36px rgba(0, 0, 0, 0.22);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -62,6 +76,11 @@ a {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
+[data-theme="dark"] .btn-primary:hover {
+  background: #dedede;
+  border-color: #dedede;
+}
+
 .btn-primary:disabled,
 .btn-secondary:disabled {
   cursor: not-allowed;
@@ -102,8 +121,17 @@ a {
   backdrop-filter: blur(16px);
 }
 
+[data-theme="dark"] .chat-header,
+[data-theme="dark"] .composer-dock {
+  background: rgba(9, 9, 9, 0.9);
+}
+
 .chat-scroll {
   background: #fcfcfd;
+}
+
+[data-theme="dark"] .chat-scroll {
+  background: #090909;
 }
 
 .composer-shell,
@@ -115,6 +143,22 @@ section.rounded-lg.bg-white {
 
 .sidebar-surface {
   background: #f7f8fa;
+}
+
+[data-theme="dark"] .sidebar-surface {
+  background: #0d0d0d;
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: var(--paper);
+}
+
+[data-theme="dark"] .text-black {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .hover\:bg-white:hover {
+  background-color: var(--paper);
 }
 
 .session-link {

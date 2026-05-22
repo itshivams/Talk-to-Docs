@@ -7,6 +7,7 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { AnswerContent } from "@/components/AnswerContent";
 import { NewChatForm } from "@/components/NewChatForm";
 import { SourceReferences } from "@/components/SourceReferences";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useAuthedSWR } from "@/lib/useAuthedSWR";
@@ -27,7 +28,7 @@ const progressSteps: ChatSession["status"][] = ["fetching", "parsing", "chunking
 export default function ChatPage() {
   const router = useRouter();
   const sessionId = typeof router.query.sessionId === "string" ? router.query.sessionId : null;
-  const { token, loading, logout } = useAuth();
+  const { token, user, loading, logout } = useAuth();
   const [question, setQuestion] = useState("");
   const [error, setError] = useState("");
   const [retrying, setRetrying] = useState(false);
@@ -102,14 +103,21 @@ export default function ChatPage() {
     <main className="grain h-screen overflow-hidden">
       <div className="flex h-full">
         <div className={`hidden shrink-0 overflow-hidden transition-[width] duration-200 ease-out lg:block ${desktopSidebarOpen ? "w-80" : "w-0"}`}>
-          <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} />
+          <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} user={user} onLogout={logout} />
         </div>
 
         {sidebarOpen ? (
           <div className="fixed inset-0 z-40 lg:hidden">
             <button className="absolute inset-0 bg-black/30" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} />
             <div className="relative h-full w-[min(86vw,320px)] bg-white shadow-xl">
-              <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} onNavigate={() => setSidebarOpen(false)} onClose={() => setSidebarOpen(false)} />
+              <ChatSidebar
+                sessions={sessions}
+                onNewChat={() => setShowNewChat((value) => !value)}
+                onNavigate={() => setSidebarOpen(false)}
+                onClose={() => setSidebarOpen(false)}
+                user={user}
+                onLogout={logout}
+              />
             </div>
           </div>
         ) : null}
@@ -145,9 +153,7 @@ export default function ChatPage() {
                 <span className="hidden rounded-lg border border-[var(--line)] px-2.5 py-1 text-xs font-medium capitalize text-[var(--muted)] sm:inline-flex">
                   {session?.status ?? "loading"}
                 </span>
-                <button className="btn-secondary rounded-lg px-3 py-2 text-sm font-semibold" onClick={logout}>
-                  Logout
-                </button>
+                <ThemeToggle />
               </div>
             </div>
             {showNewChat ? (
@@ -278,12 +284,18 @@ export default function ChatPage() {
 function MessageActions({ content, inverse }: { content: string; inverse: boolean }) {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
 
   useEffect(() => {
-    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+    if (!("speechSynthesis" in window)) return;
+    const synthesis = window.speechSynthesis;
+    const loadVoices = () => synthesis.getVoices();
+    loadVoices();
+    synthesis.addEventListener("voiceschanged", loadVoices);
     return () => {
-      if (utteranceRef.current) window.speechSynthesis?.cancel();
+      synthesis.removeEventListener("voiceschanged", loadVoices);
+      synthesis.cancel();
+      speechQueueRef.current = [];
     };
   }, []);
 
@@ -299,35 +311,44 @@ function MessageActions({ content, inverse }: { content: string; inverse: boolea
 
   function speak() {
     if (!("speechSynthesis" in window)) return;
+    const synthesis = window.speechSynthesis;
     if (speaking) {
-      window.speechSynthesis.cancel();
-      utteranceRef.current = null;
+      synthesis.cancel();
+      speechQueueRef.current = [];
       setSpeaking(false);
       return;
     }
     const text = readableSpeech(content);
     if (!text) return;
-    const synthesis = window.speechSynthesis;
     synthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
     const voices = synthesis.getVoices();
-    utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) || voices[0] || null;
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => {
-      utteranceRef.current = null;
-      setSpeaking(false);
-    };
-    utterance.onerror = () => {
-      utteranceRef.current = null;
-      setSpeaking(false);
-    };
-    utteranceRef.current = utterance;
+    const voice = voices.find((candidate) => candidate.lang.toLowerCase().startsWith("en")) || voices[0] || null;
+    const queue = speechChunks(text).map((chunk, index, chunks) => {
+      const utterance = new SpeechSynthesisUtterance(chunk);
+      utterance.voice = voice;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onstart = () => setSpeaking(true);
+      utterance.onend = () => {
+        if (index === chunks.length - 1) {
+          speechQueueRef.current = [];
+          setSpeaking(false);
+        }
+      };
+      utterance.onerror = () => {
+        synthesis.cancel();
+        speechQueueRef.current = [];
+        setSpeaking(false);
+      };
+      return utterance;
+    });
+    speechQueueRef.current = queue;
     setSpeaking(true);
+
+    // Some engines drop long utterances or start paused after a prior cancel.
     window.setTimeout(() => {
-      synthesis.speak(utterance);
+      queue.forEach((utterance) => synthesis.speak(utterance));
       synthesis.resume();
     }, 0);
   }
@@ -357,6 +378,21 @@ function readableSpeech(content: string) {
     .replace(/[`*_#>|[\]]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function speechChunks(content: string) {
+  const sentences = content.match(/[^.!?]+[.!?]?/g) || [content];
+  return sentences.reduce<string[]>((chunks, sentence) => {
+    const trimmed = sentence.trim();
+    if (!trimmed) return chunks;
+    const last = chunks.at(-1);
+    if (last && last.length + trimmed.length < 220) {
+      chunks[chunks.length - 1] = `${last} ${trimmed}`;
+    } else {
+      chunks.push(trimmed);
+    }
+    return chunks;
+  }, []);
 }
 
 function ProgressStep({ step, status }: { step: ChatSession["status"]; status?: ChatSession["status"] }) {
