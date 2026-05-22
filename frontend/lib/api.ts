@@ -1,9 +1,14 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export function websocketURL(path: string, token: string): string {
-  const base = new URL(API_BASE_URL);
-  base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
-  base.pathname = path;
+  const base = new URL(
+    API_BASE_URL,
+    typeof window !== "undefined" ? window.location.origin : "http://localhost:8080"
+  );
+  const isSecure = base.protocol === "https:" || (typeof window !== "undefined" && window.location.protocol === "https:");
+  base.protocol = isSecure ? "wss:" : "ws:";
+  const prefix = base.pathname.replace(/\/$/, "");
+  base.pathname = `${prefix}${path}`;
   base.search = "";
   base.searchParams.set("access_token", token);
   return base.toString();
