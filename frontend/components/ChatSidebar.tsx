@@ -1,16 +1,34 @@
 import Link from "next/link";
+import { Menu } from "lucide-react";
 import { useRouter } from "next/router";
 
 import type { ChatSession } from "@/lib/types";
 
-export function ChatSidebar({ sessions, onNewChat, onNavigate }: { sessions: ChatSession[]; onNewChat: () => void; onNavigate?: () => void }) {
+export function ChatSidebar({
+  sessions,
+  onNewChat,
+  onNavigate,
+  onClose,
+}: {
+  sessions: ChatSession[];
+  onNewChat: () => void;
+  onNavigate?: () => void;
+  onClose?: () => void;
+}) {
   const router = useRouter();
   return (
-    <aside className="flex h-full min-h-0 flex-col border-r border-[var(--line)] bg-[var(--soft)]">
+    <aside className="sidebar-surface flex h-full min-h-0 w-full flex-col border-r border-[var(--line)] bg-[var(--soft)]">
       <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] px-3">
-        <Link href="/dashboard" onClick={onNavigate} className="truncate text-sm font-semibold">
-          Talk to Docs
-        </Link>
+        <div className="flex min-w-0 items-center gap-2">
+          {onClose ? (
+            <button className="btn-secondary grid h-9 w-9 shrink-0 place-items-center rounded-lg" aria-label="Close sidebar" title="Close sidebar" onClick={onClose}>
+              <Menu className="h-4 w-4" />
+            </button>
+          ) : null}
+          <Link href="/dashboard" onClick={onNavigate} className="truncate text-sm font-semibold">
+            Talk to Docs
+          </Link>
+        </div>
         <button onClick={onNewChat} className="btn-primary rounded-lg px-3 py-2 text-xs font-semibold">
           New
         </button>
@@ -23,7 +41,7 @@ export function ChatSidebar({ sessions, onNewChat, onNavigate }: { sessions: Cha
               key={session.id}
               href={`/chat/${session.id}`}
               onClick={onNavigate}
-              className={`block rounded-lg border p-3 transition ${
+              className={`session-link block rounded-lg border p-3 transition ${
                 active ? "border-black bg-black text-white" : "border-transparent bg-transparent hover:border-[var(--line)] hover:bg-white"
               }`}
             >

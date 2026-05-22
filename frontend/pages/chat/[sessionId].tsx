@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Check, Copy, Plus, Volume2 } from "lucide-react";
+import { Check, Copy, Menu, Plus, Square, Volume2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 
@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const { data: sessionsData } = useAuthedSWR<{ sessions: ChatSession[] }>("/sessions");
@@ -100,7 +101,7 @@ export default function ChatPage() {
   return (
     <main className="grain h-screen overflow-hidden">
       <div className="flex h-full">
-        <div className="hidden w-80 shrink-0 lg:block">
+        <div className={`hidden shrink-0 overflow-hidden transition-[width] duration-200 ease-out lg:block ${desktopSidebarOpen ? "w-80" : "w-0"}`}>
           <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} />
         </div>
 
@@ -108,17 +109,30 @@ export default function ChatPage() {
           <div className="fixed inset-0 z-40 lg:hidden">
             <button className="absolute inset-0 bg-black/30" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} />
             <div className="relative h-full w-[min(86vw,320px)] bg-white shadow-xl">
-              <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} onNavigate={() => setSidebarOpen(false)} />
+              <ChatSidebar sessions={sessions} onNewChat={() => setShowNewChat((value) => !value)} onNavigate={() => setSidebarOpen(false)} onClose={() => setSidebarOpen(false)} />
             </div>
           </div>
         ) : null}
 
         <section className="flex min-w-0 flex-1 flex-col bg-white">
-          <header className="shrink-0 border-b border-[var(--line)]">
+          <header className="chat-header shrink-0 border-b border-[var(--line)]">
             <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">
               <div className="flex min-w-0 items-center gap-2">
-                <button className="btn-secondary rounded-lg px-3 py-2 text-sm font-semibold lg:hidden" onClick={() => setSidebarOpen(true)}>
-                  Menu
+                <button
+                  className="btn-secondary grid h-10 w-10 place-items-center rounded-lg lg:hidden"
+                  aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                  title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                  onClick={() => setSidebarOpen((value) => !value)}
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+                <button
+                  className="btn-secondary hidden h-10 w-10 place-items-center rounded-lg lg:grid"
+                  aria-label={desktopSidebarOpen ? "Close sidebar" : "Open sidebar"}
+                  title={desktopSidebarOpen ? "Close sidebar" : "Open sidebar"}
+                  onClick={() => setDesktopSidebarOpen((value) => !value)}
+                >
+                  <Menu className="h-4 w-4" />
                 </button>
                 <div className="min-w-0">
                   <h1 className="truncate text-sm font-semibold sm:text-base">{session?.title || "Preparing documentation"}</h1>
@@ -143,8 +157,8 @@ export default function ChatPage() {
             ) : null}
           </header>
 
-          <div className="scrollbar-thin flex-1 overflow-y-auto">
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 py-5 sm:px-6">
+          <div className="chat-scroll scrollbar-thin flex-1 overflow-y-auto">
+            <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-6 sm:px-6">
               {!ready ? (
                 <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--soft)] p-5">
                   <p className="text-base font-semibold">{session?.status === "error" ? "Ingestion failed." : "Preparing this document."}</p>
@@ -171,7 +185,7 @@ export default function ChatPage() {
                 {messages.map((message) => (
                   <article key={message.id ?? `${message.role}-${message.created_at}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`rounded-lg px-4 py-3 text-sm leading-6 ${
+                      className={`message-surface rounded-lg px-4 py-3 text-sm leading-6 ${
                         message.role === "user" ? "max-w-[88%] bg-black text-white sm:max-w-[76%]" : "w-full border border-[var(--line)] bg-white text-[var(--ink)]"
                       }`}
                     >
@@ -206,11 +220,11 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <form onSubmit={submit} className="shrink-0 border-t border-[var(--line)] bg-white p-3 sm:p-4">
-            <div className="mx-auto w-full max-w-3xl">
+          <form onSubmit={submit} className="composer-dock shrink-0 border-t border-[var(--line)] p-3 sm:p-4">
+            <div className="mx-auto w-full max-w-4xl">
               {error ? <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
               {chatStream.error ? <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{chatStream.error}</p> : null}
-              <div className="flex items-end gap-2 rounded-lg border border-[var(--line)] bg-white p-2 focus-within:border-black focus-within:shadow-[0_0_0_3px_rgba(13,13,13,0.08)]">
+              <div className="composer-shell flex items-end gap-2 rounded-lg border border-[var(--line)] bg-white p-2 focus-within:border-black focus-within:shadow-[0_0_0_4px_rgba(13,13,13,0.08)]">
                 <div className="relative shrink-0">
                   <button
                     type="button"
@@ -263,6 +277,15 @@ export default function ChatPage() {
 
 function MessageActions({ content, inverse }: { content: string; inverse: boolean }) {
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+    return () => {
+      if (utteranceRef.current) window.speechSynthesis?.cancel();
+    };
+  }, []);
 
   async function copy() {
     try {
@@ -276,8 +299,37 @@ function MessageActions({ content, inverse }: { content: string; inverse: boolea
 
   function speak() {
     if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(readableSpeech(content)));
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      setSpeaking(false);
+      return;
+    }
+    const text = readableSpeech(content);
+    if (!text) return;
+    const synthesis = window.speechSynthesis;
+    synthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = synthesis.getVoices();
+    utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) || voices[0] || null;
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => {
+      utteranceRef.current = null;
+      setSpeaking(false);
+    };
+    utterance.onerror = () => {
+      utteranceRef.current = null;
+      setSpeaking(false);
+    };
+    utteranceRef.current = utterance;
+    setSpeaking(true);
+    window.setTimeout(() => {
+      synthesis.speak(utterance);
+      synthesis.resume();
+    }, 0);
   }
 
   const actionClass = inverse ? "text-white/70 hover:bg-white/15 hover:text-white" : "text-[var(--muted)] hover:bg-[var(--soft)] hover:text-black";
@@ -286,8 +338,14 @@ function MessageActions({ content, inverse }: { content: string; inverse: boolea
       <button type="button" className={`grid h-7 w-7 place-items-center rounded-md ${actionClass}`} aria-label="Copy message" title="Copy message" onClick={copy}>
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       </button>
-      <button type="button" className={`grid h-7 w-7 place-items-center rounded-md ${actionClass}`} aria-label="Read message aloud" title="Read message aloud" onClick={speak}>
-        <Volume2 className="h-3.5 w-3.5" />
+      <button
+        type="button"
+        className={`grid h-7 w-7 place-items-center rounded-md ${actionClass}`}
+        aria-label={speaking ? "Stop reading" : "Read message aloud"}
+        title={speaking ? "Stop reading" : "Read message aloud"}
+        onClick={speak}
+      >
+        {speaking ? <Square className="h-3 w-3 fill-current" /> : <Volume2 className="h-3.5 w-3.5" />}
       </button>
     </div>
   );

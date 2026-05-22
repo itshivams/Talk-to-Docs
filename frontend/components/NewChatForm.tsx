@@ -32,7 +32,7 @@ export function NewChatForm({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <form onSubmit={submit} className={compact ? "space-y-3" : "fade-in rounded-lg border border-[var(--line)] bg-white p-5 shadow-sm md:p-6"}>
+    <form onSubmit={submit} className={compact ? "space-y-3" : "fade-in rounded-lg border border-[var(--line)] bg-white p-5 md:p-6"}>
       {!compact ? (
         <>
           <p className="text-xs font-semibold uppercase text-[var(--muted)]">New chat</p>

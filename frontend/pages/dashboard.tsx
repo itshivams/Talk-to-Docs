@@ -24,8 +24,8 @@ export default function DashboardPage() {
 
   return (
     <main className="grain min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-5 md:px-6">
-        <header className="mb-5 flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-5 md:flex-row md:items-center">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
+        <header className="mb-6 flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-6 md:flex-row md:items-center">
           <div>
             <p className="text-xs font-semibold uppercase text-[var(--muted)]">Documentation QA</p>
             <h1 className="mt-2 text-3xl font-semibold md:text-4xl">Talk to Docs</h1>
@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <NewChatForm />
-          <section className="rounded-lg border border-[var(--line)] bg-white p-5 shadow-sm md:p-6">
+          <section className="rounded-lg border border-[var(--line)] bg-white p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase text-[var(--muted)]">Chat history</p>
